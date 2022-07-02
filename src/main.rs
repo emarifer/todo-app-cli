@@ -4,8 +4,6 @@ use std::io;
 use std::io::Write;
 
 fn menu() -> u8 {
-    println!("{}", get_time_and_data());
-
     println!("\nMENU");
     println!("----------------------------------------\n");
     println!("Por favor, selecciona una opción:");
@@ -57,8 +55,14 @@ fn main() {
                 let vec = todo.map.iter();
 
                 for (i, entry) in vec.enumerate() {
-                    let completed = if *entry.1 { "activo" } else { "inactivo" };
-                    println!("\t {}. {} => {}", i + 1, entry.0, completed);
+                    let completed = if (entry.1).0 { "activo" } else { "inactivo" };
+                    println!(
+                        "\t {}. {} => {} / [{}]",
+                        i + 1,
+                        entry.0,
+                        completed,
+                        (entry.1).1,
+                    );
                 }
             }
 
@@ -106,7 +110,7 @@ fn main() {
 
 struct Todo {
     // Usamos el tipo HashMap que está incorporado en Rust.
-    map: HashMap<String, bool>,
+    map: HashMap<String, (bool, String)>,
 }
 
 impl Todo {
@@ -132,7 +136,8 @@ impl Todo {
     fn insert(&mut self, key: String) {
         // Insertamos un nuevo valor en nuestro mapa.
         // Por default, el value va a ser true.
-        self.map.insert(key.trim().to_string(), true);
+        self.map
+            .insert(key.trim().to_string(), (true, get_time_and_data()));
     }
 
     fn save(self, folder: &String) -> Result<(), Box<dyn std::error::Error>> {
@@ -151,7 +156,7 @@ impl Todo {
 
     fn complete(&mut self, key: &String) -> Option<()> {
         match self.map.get_mut(key.trim()) {
-            Some(v) => Some(*v = false),
+            Some(v) => Some(*v = (false, get_time_and_data())),
             None => None,
         }
     }
@@ -187,4 +192,23 @@ fn get_time_and_data() -> String {
  * https://www.rust-lang.org/es/what/cli
  * https://doc.rust-lang.org/nightly/std/boxed/index.html
  * https://stackoverflow.com/questions/6329887/compiling-problems-cannot-find-crt1-o
+ */
+
+/*
+ * https://crates.io/crates/home
+ * https://crates.io/crates/chrono
+ * https://rustrepo.com/repo/chronotope-chrono-rust-date-and-time
+ * https://docs.rs/chrono/0.4.19/chrono/struct.DateTime.html#method.parse_from_rfc3339
+ * https://rust-lang-nursery.github.io/rust-cookbook/datetime/parse.html
+ * https://doc.rust-lang.org/std/primitive.usize.html
+ * https://stackoverflow.com/questions/66288515/how-do-i-get-the-index-of-the-current-element-in-a-for-loop-in-rust
+ * https://stackoverflow.com/questions/44788026/expected-type-bool-found-type-bool
+ * https://stackoverflow.com/questions/23975391/how-to-convert-a-string-into-a-static-str
+ * https://stackoverflow.com/questions/21324657/does-rust-support-ruby-like-string-interpolation
+ * https://stackoverflow.com/questions/68608378/error-says-value-moved-in-previous-in-iteration-of-loop-but-this-doesnt-seem-t
+ * https://doc.rust-lang.org/reference/expressions/tuple-expr.html
+ */
+
+/*
+ * https://code.visualstudio.com/docs/supporting/faq#_resolving-shell-environment-fails
  */
