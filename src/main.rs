@@ -1,6 +1,37 @@
+use chrono::{Local, Timelike, Utc};
 use std::collections::HashMap;
-// use std::io::Read;
-// use std::str::FromStr;
+use std::io;
+use std::io::Write;
+
+fn menu() -> u8 {
+    println!("{}", get_time_and_data());
+
+    println!("\nMENU");
+    println!("----------------------------------------\n");
+    println!("Por favor, selecciona una opción:");
+    println!("\t 1. Mostrar la lista de todos");
+    println!("\t 2. Añade un todo");
+    println!("\t 3. Completa un todo por su nombre");
+    println!("\t 0. Salir de la aplicación");
+    print!("\nOpción: ");
+    io::stdout().flush().expect("Error flushing");
+
+    let mut input: String = String::new();
+
+    io::stdin()
+        .read_line(&mut input)
+        .expect("No se pudo leer la línea 😱");
+
+    let option = input.trim().parse();
+
+    match option {
+        Ok(o) => o,
+        Err(_) => {
+            eprintln!("ERROR: Por favor, escribe un número");
+            99
+        }
+    }
+}
 
 fn main() {
     let mut user_home = String::new();
@@ -13,38 +44,64 @@ fn main() {
         None => println!("¡Imposible conseguir el directorio Home! 😱"),
     }
 
-    // println!("Mi carpeta de usuario es: {}", user_home);
+    while {
+        let mut todo = Todo::new(&user_home).expect("La inicialización de la db falló 😱");
 
-    let action = std::env::args()
-        .nth(1)
-        .expect("Por favor, especifica una acción");
+        let option: u8 = menu();
 
-    let item = std::env::args()
-        .nth(2)
-        .expect("Por favor, especifica un item");
+        match option {
+            1 => {
+                println!("\nLISTA DE TODOS");
+                println!("----------------------------------------\n");
 
-    let mut todo = Todo::new(&user_home).expect("La inicialización de la db falló 😱");
+                let vec = todo.map.iter();
 
-    if action == "add" {
-        todo.insert(item);
+                for (i, entry) in vec.enumerate() {
+                    let completed = if *entry.1 { "activo" } else { "inactivo" };
+                    println!("\t {}. {} => {}", i + 1, entry.0, completed);
+                }
+            }
 
-        match todo.save(&user_home) {
-            Ok(_) => println!("Todo guardado correctamente 😀"),
-            Err(why) => println!("Ha ocurrido un error: {} 😱", why),
-        }
-    } else if action == "complete" {
-        match todo.complete(&item) {
-            None => println!("'{}' no está presente en la lista de ToDos", item),
-            Some(_) => match todo.save(&user_home) {
-                Ok(_) => println!("Todo actualizado"),
-                Err(why) => println!("Ha ocurrido un error: {} 😱", why),
-            },
-        }
-    } else {
-        println!("No es una acción válida")
-    }
+            2 => {
+                println!("\nPor favor, ingresa el nombre del todo:");
+                let mut item: String = String::new();
 
-    // println!("{:?}, {:?}", action, item);
+                io::stdin()
+                    .read_line(&mut item)
+                    .expect("Fallo al leer la línea!");
+
+                todo.insert(item);
+
+                match todo.save(&user_home) {
+                    Ok(_) => println!("Todo guardado correctamente 😀"),
+                    Err(why) => println!("Ha ocurrido un error: {} 😱", why),
+                };
+            }
+
+            3 => {
+                println!("\nPor favor, ingresa el nombre del todo:");
+                let mut item: String = String::new();
+
+                io::stdin()
+                    .read_line(&mut item)
+                    .expect("Fallo al leer la línea!");
+
+                match todo.complete(&item) {
+                    None => println!("'{}' no está presente en la lista de ToDos", item),
+                    Some(_) => match todo.save(&user_home) {
+                        Ok(_) => println!("Todo actualizado"),
+                        Err(why) => println!("Ha ocurrido un error: {} 😱", why),
+                    },
+                }
+            }
+
+            0 => println!("Saliendo..."),
+            99 => {}
+            _ => println!("Opción inválida"),
+        };
+
+        option != 0
+    } {}
 }
 
 struct Todo {
@@ -70,38 +127,16 @@ impl Todo {
             }),
             Err(e) => panic!("Ha ocurrido un error: {} 😱", e),
         }
-
-        // let mut content = String::new();
-
-        // f.read_to_string(&mut content)?;
-
-        // // Uso de "turbofish": https://techblog.tonsser.com/posts/what-is-rusts-turbofish
-        // let map: HashMap<String, bool> = content
-        //     .lines()
-        //     .map(|line| line.splitn(2, '\t').collect::<Vec<&str>>())
-        //     .map(|v| (v[0], v[1]))
-        //     .map(|(k, v)| (String::from(k), bool::from_str(v).unwrap()))
-        //     .collect();
-
-        // Ok(Todo { map })
     }
 
     fn insert(&mut self, key: String) {
         // Insertamos un nuevo valor en nuestro mapa.
         // Por default, el value va a ser true.
-        self.map.insert(key, true);
+        self.map.insert(key.trim().to_string(), true);
     }
 
     fn save(self, folder: &String) -> Result<(), Box<dyn std::error::Error>> {
         let my_home = string_to_static_str(folder.to_string());
-        // let mut content = String::new();
-
-        // for (k, v) in self.map {
-        //     let record = format!("{}\t{}\n", k, v);
-        //     content.push_str(&record)
-        // }
-
-        // std::fs::write("/home/{user_home}/.db.json", content)
 
         // Abrir db.json
         let f = std::fs::OpenOptions::new()
@@ -115,7 +150,7 @@ impl Todo {
     }
 
     fn complete(&mut self, key: &String) -> Option<()> {
-        match self.map.get_mut(key) {
+        match self.map.get_mut(key.trim()) {
             Some(v) => Some(*v = false),
             None => None,
         }
@@ -124,6 +159,20 @@ impl Todo {
 
 fn string_to_static_str(s: String) -> &'static str {
     Box::leak(s.into_boxed_str())
+}
+
+fn get_time_and_data() -> String {
+    let now = Local::now();
+    let date = Utc::now().date().format("%d-%m-%Y");
+    let (is_pm, hour) = now.hour12();
+    format!(
+        "{:02}:{:02}:{:02} {} • {}",
+        hour,
+        now.minute(),
+        now.second(),
+        if is_pm { "PM" } else { "AM" },
+        date
+    )
 }
 
 /*
