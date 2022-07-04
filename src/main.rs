@@ -33,9 +33,9 @@ fn menu() -> u8 {
     }
 }
 
-fn create_menu(user_home: &String) {
+fn create_menu(user_home: &str) {
     while {
-        let mut todo = Todo::new(&user_home).expect("La inicialización de la db falló 😱");
+        let mut todo = Todo::new(user_home).expect("La inicialización de la db falló 😱");
 
         let option: u8 = menu();
 
@@ -66,7 +66,7 @@ fn create_menu(user_home: &String) {
                     .read_line(&mut item)
                     .expect("Fallo al leer la línea!");
 
-                todo.insert(item);
+                todo.insert(&item);
 
                 match todo.save(&user_home) {
                     Ok(_) => println!("Todo guardado correctamente 😀"),
@@ -106,12 +106,6 @@ fn create_menu(user_home: &String) {
                         Err(why) => println!("Ha ocurrido un error: {} 😱", why),
                     },
                 }
-                // todo.delete(&item);
-
-                // match todo.save(&user_home) {
-                //     Ok(_) => println!("El todo ha sido eliminado"),
-                //     Err(why) => println!("Ha ocurrido un error: {} 😱", why),
-                // }
             }
 
             0 => println!("Saliendo..."),
@@ -125,18 +119,22 @@ fn create_menu(user_home: &String) {
     } {}
 }
 
-fn main() {
+fn get_user_home() -> String {
     let mut user_home = String::new();
 
     match home::home_dir() {
-        Some(path) => match path.to_str() {
-            None => println!("¡Imposible conseguir el directorio Home! 😱"),
+        Some(path) => match path.join(".db.json").to_str() {
+            None => println!("¡El path no es una secuencia UTF-8 válida! 😱"),
             Some(my_home) => user_home = my_home.to_string(),
         },
         None => println!("¡Imposible conseguir el directorio Home! 😱"),
     }
 
-    create_menu(&user_home);
+    user_home
+}
+
+fn main() {
+    create_menu(&get_user_home());
 }
 
 /*

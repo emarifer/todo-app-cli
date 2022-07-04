@@ -8,12 +8,12 @@ pub struct Todo {
 }
 
 impl Todo {
-    pub fn new(folder: &String) -> Result<Todo, std::io::Error> {
+    pub fn new(home_path: &str) -> Result<Todo, std::io::Error> {
         let f = std::fs::OpenOptions::new()
             .write(true)
             .create(true)
             .read(true)
-            .open(format!("{}/.db.json", &folder[..]))?; // VER NOTA-1 ABAJO:
+            .open(home_path)?; // VER NOTA-1 ABAJO:
 
         // Serializar el archivo json como HashMap
         match serde_json::from_reader(f) {
@@ -25,40 +25,40 @@ impl Todo {
         }
     }
 
-    pub fn insert(&mut self, key: String) {
+    pub fn insert(&mut self, key: &str) {
         // Insertamos un nuevo valor en nuestro mapa.
-        // Por default, el value va a ser true.
+        // Por default, el value va a ser true por default.
         self.map
             .insert(key.trim().to_string(), (true, get_time_and_date()));
     }
 
-    pub fn save(self, folder: &String) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn save(self, home_path: &str) -> Result<(), Box<dyn std::error::Error>> {
         // Abrir db.json
         let f = std::fs::OpenOptions::new()
             .write(true)
             .truncate(true) // VER NOTA-1 ABAJO:
             .create(true)
-            .open(format!("{}/.db.json", &folder[..]))?;
+            .open(home_path)?;
 
         // Escribir en el archivo con serde
         serde_json::to_writer_pretty(f, &self.map)?;
         Ok(())
     }
 
-    pub fn complete(&mut self, key: &String) -> Option<()> {
+    pub fn complete(&mut self, key: &str) -> Option<()> {
         match self.map.get_mut(key.trim()) {
             Some(v) => Some(*v = (false, get_time_and_date())),
             None => None,
         }
     }
 
-    pub fn delete(&mut self, key: &String) -> Option<String> {
+    pub fn delete(&mut self, key: &str) -> Option<String> {
         match self.map.remove_entry(key.trim()) {
             Some(e) => Some(e.0),
             None => None,
         }
     }
-    // pub fn delete(&mut self, key: &String) {
+    // pub fn delete(&mut self, key: &str) {
     //     self.map.retain(|k, _| k != key.trim());
     // }
 }
